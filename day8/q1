@@ -1,0 +1,75 @@
+package com.example;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.time.Duration;
+
+import org.apache.poi.xssf.usermodel.*;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.Select;
+import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import io.github.bonigarcia.wdm.WebDriverManager;
+public class AppTestXl {
+    WebDriver driver;
+
+    @BeforeMethod
+    public void testSetup() throws IOException {
+        FileInputStream fs = new FileInputStream("D:\\mysheet.xlsx");
+        XSSFWorkbook workbook = new XSSFWorkbook(fs);
+        XSSFSheet sheet = workbook.getSheet("login");
+
+        XSSFRow row = sheet.getRow(1); 
+        String username = row.getCell(0).getStringCellValue(); 
+        String password = row.getCell(1).getStringCellValue(); 
+
+        WebDriverManager.chromedriver().setup();
+        driver = new ChromeDriver();
+        driver.get("http://dbankdemo.com/bank/login");
+        driver.manage().window().maximize();
+        driver.findElement(By.xpath("//*[@id='username']")).sendKeys(username);
+        driver.findElement(By.xpath("//*[@id='password']")).sendKeys(password);
+        driver.findElement(By.xpath("//*[@id='submit']")).click();
+    }
+
+    @Test
+    public void Test1() {
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
+        Assert.assertTrue(driver.getCurrentUrl().contains("home"),"Login Successfull");
+    }
+
+    @Test
+    public void Test2() throws IOException{
+    driver.findElement(By.linkText("Deposit")).click();
+    WebElement accountDropdown = driver.findElement(By.id("account"));
+    Select selectAccount = new Select(accountDropdown);
+    selectAccount.selectByVisibleText("Individual Checking (Standard Checking)");
+    driver.findElement(By.id("amount")).sendKeys("5000");
+    driver.findElement(By.id("submit")).click();
+    WebElement depositedAmountTable = driver.findElement(By.id("depositsTable"));
+    Assert.assertTrue(depositedAmountTable.getText().contains("5000"), "Deposit amount not found in table");
+}
+
+
+    @Test
+    public void Test3() {
+        driver.findElement(By.linkText("Withdraw")).click();
+        WebElement accountDropdown = driver.findElement(By.id("account"));
+        Select selectAccount = new Select(accountDropdown);
+        selectAccount.selectByVisibleText("Individual Checking (Standard Checking)");
+        driver.findElement(By.id("amount")).sendKeys("3000");
+        driver.findElement(By.id("submit")).click();
+        WebElement withdrawnAmountTable = driver.findElement(By.id("withdrawalsTable"));
+        Assert.assertTrue(withdrawnAmountTable.getText().contains("3000"), "Withdrawal amount not found in table");
+    }
+    @AfterMethod
+    public void testClose() {
+        driver.close();
+    }
+}
